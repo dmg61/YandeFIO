@@ -48,7 +48,7 @@
         <entry file="file://$PROJECT_DIR$/src/main/java/ru/test/yandex/YandexFio.java">
           <provider selected="true" editor-type-id="text-editor">
             <state vertical-scroll-proportion="0.49253732">
-              <caret line="39" column="44" selection-start-line="39" selection-start-column="44" selection-end-line="39" selection-end-column="44" />
+              <caret line="39" column="42" selection-start-line="39" selection-start-column="42" selection-end-line="39" selection-end-column="42" />
               <folding />
             </state>
           </provider>
@@ -707,12 +707,12 @@
       <workItem from="1479887387650" duration="742000" />
       <workItem from="1479968239564" duration="1819000" />
       <workItem from="1481100452263" duration="5567000" />
-      <workItem from="1481522932223" duration="1279000" />
+      <workItem from="1481522932223" duration="1670000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="36018000" />
+    <option name="totallyTimeSpent" value="36409000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1176" extended-state="6" />
@@ -1247,7 +1247,7 @@
     <entry file="file://$PROJECT_DIR$/src/main/java/ru/test/yandex/YandexFio.java">
       <provider selected="true" editor-type-id="text-editor">
         <state vertical-scroll-proportion="0.49253732">
-          <caret line="39" column="44" selection-start-line="39" selection-start-column="44" selection-end-line="39" selection-end-column="44" />
+          <caret line="39" column="42" selection-start-line="39" selection-start-column="42" selection-end-line="39" selection-end-column="42" />
           <folding />
         </state>
       </provider>
