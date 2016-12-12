@@ -35,8 +35,8 @@ public class YandexFio extends HTTPSExternalSystem{
     @Override
     protected String getUrl() {
 //        return "http://requestb.in/1j4tvas1";
-//        return "https://calypso.yamoney.ru:443/";
-        return "https://calypso.yamoney.ru:9094/webservice/iddata/api/idDataCheck";
+        return "https://calypso.yamoney.ru:443/";
+//        return "https://calypso.yamoney.ru:9094/webservice/iddata/api/idDataCheck";
 //        return "https://bo-demo02.yamoney.ru:9094/webservice/iddata/api/idDataCheck";
     }
 
