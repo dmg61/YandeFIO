@@ -9,7 +9,7 @@ import java.util.Map;
  * Created by tikhonin on 23.12.2015.
  */
 public abstract class AbstractExternalSystem {
-    private String connectionString;
+    protected String connectionString;
     private Map<String, String> connectionStringParams;
 
     public AbstractExternalSystem(String connectionString) {
