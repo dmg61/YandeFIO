@@ -10,39 +10,41 @@ import java.io.IOException;
  */
 public class Main {
     public static void main(String[] args) {
-        FPSInvoker invoker = new FPSInvoker();
+        YandexId invoker = new YandexId();
 
         if (args.length != 1) {
             System.out.println("Неверное количество аргументов");
             return;
         }
 
-        BufferedReader br = null;
+//        BufferedReader br = null;
         String everything = null;
-        try {
-            br = new BufferedReader(new FileReader(args[0]));
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        try {
-            StringBuilder sb = new StringBuilder();
-            String line = br.readLine();
+//        try {
+//            br = new BufferedReader(new FileReader(args[0]));
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        }
+//        try {
+//            StringBuilder sb = new StringBuilder();
+//            String line = br.readLine();
+//
+//            while (line != null) {
+//                sb.append(line);
+//                sb.append(System.lineSeparator());
+//                line = br.readLine();
+//            }
+//            everything = sb.toString();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } finally {
+//            try {
+//                br.close();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
 
-            while (line != null) {
-                sb.append(line);
-                sb.append(System.lineSeparator());
-                line = br.readLine();
-            }
-            everything = sb.toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                br.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
+        everything = args[0];
 
         System.out.println("\n############## REQUEST ######################");
         System.out.println(everything);

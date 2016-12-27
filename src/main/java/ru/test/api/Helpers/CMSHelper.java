@@ -6,8 +6,17 @@ import ru.CryptoPro.JCP.ASN.PKIX1Explicit88.CertificateSerialNumber;
 import ru.CryptoPro.JCP.ASN.PKIX1Explicit88.Name;
 import ru.CryptoPro.JCP.JCP;
 import ru.CryptoPro.JCP.params.OID;
+import ru.test.api.exceptions.AxiLinkException;
+import sun.misc.BASE64Encoder;
+import sun.security.pkcs.PKCS7;
+import sun.security.util.DerOutputStream;
+import sun.security.util.DerValue;
+import sun.security.x509.AlgorithmId;
+import sun.security.x509.X500Name;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.*;
 import java.security.Signature;
 import java.security.cert.Certificate;
@@ -34,32 +43,30 @@ public class CMSHelper {
         return data;
     }
 
-    public static byte[] signPKCS7(PrivateKey privateKey, Certificate certificate, String password, byte[] data) throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, InvalidKeyException, SignatureException, NoSuchProviderException, Asn1Exception {
+    public static byte[] signPKCS7(String storeName, String password, byte[] data) throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, InvalidKeyException, SignatureException, NoSuchProviderException, Asn1Exception, AxiLinkException {
         //load keys for sign
         final PrivateKey[] keys = new PrivateKey[1];
-        keys[0] = privateKey;
+        keys[0] = loadKey(storeName, password.toCharArray());
+
+        if(keys[0] == null)
+            throw new AxiLinkException("Ошибка загрузки приватного ключа: " + storeName);
 
         final Certificate[] certs = new Certificate[1];
-        certs[0] = certificate;
+        certs[0] = loadCertificate(storeName);
+
+        if(keys[0] == null)
+            throw new AxiLinkException("Ошибка загрузки сертификата: " + storeName);
 
         final Asn1BerDecodeBuffer asnBuf = new Asn1BerDecodeBuffer(data);
         final ContentInfo all = new ContentInfo();
 
         byte [] cmsData = null;
-        //cmsData = createCMS(data, keys, certs, false);
-        cmsData = createCMSEx(data, keys, certs, false, "1.3.14.3.2.26", "1.3.14.3.2.29", Signature.getInstance("SHA1withRSA"));
+        cmsData = createCMS(data, keys, certs, false);
 
         byte [] result = null;
-        //result = signCMS(cmsData, keys, certs, null);
-        result = signCMSEx(cmsData, keys, certs, null, "1.3.14.3.2.26", "1.3.14.3.2.29", Signature.getInstance("SHA1withRSA"));
-
+        result = signCMS(cmsData, keys, certs, null);
 
         return result;
-    }
-
-    public static byte[] signPKCS7(String storeName, String password, byte[] data) throws UnrecoverableKeyException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, InvalidKeyException, SignatureException, NoSuchProviderException, Asn1Exception {
-        //load keys for sign
-        return signPKCS7(loadKey(storeName, password.toCharArray()), loadCertificate(storeName), password, data);
     }
 
     /**
@@ -101,10 +108,10 @@ public class CMSHelper {
      * @throws Exception e
      */
     private static byte[] createCMS(byte[] data, PrivateKey[] keys, Certificate[] certs, boolean detached) throws Asn1Exception, NoSuchAlgorithmException, CertificateEncodingException, SignatureException, NoSuchProviderException, InvalidKeyException, IOException {
-        return createCMSEx(data, keys, certs, detached, JCP.GOST_DIGEST_OID, JCP.GOST_EL_KEY_OID, Signature.getInstance(JCP.GOST_EL_SIGN_NAME, JCP.PROVIDER_NAME));
+        return createCMSEx(data, keys, certs, detached, JCP.GOST_DIGEST_OID, JCP.GOST_EL_KEY_OID, JCP.GOST_EL_SIGN_NAME, JCP.PROVIDER_NAME);
     }
 
-    private static byte[] createCMSEx(byte[] data, PrivateKey[] keys, Certificate[] certs, boolean detached, String digestOid, String signOid, Signature signature) throws CertificateEncodingException, Asn1Exception, IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+    private static byte[] createCMSEx(byte[] data, PrivateKey[] keys, Certificate[] certs, boolean detached, String digestOid, String signOid, String signAlg, String providerName) throws CertificateEncodingException, Asn1Exception, IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         //create CMS
         final ContentInfo all = new ContentInfo();
         all.contentType = new Asn1ObjectIdentifier(new OID(STR_CMS_OID_SIGNED).value);
@@ -144,7 +151,7 @@ public class CMSHelper {
         } // for
 
         // Signature.getInstance
-        //final java.security.Signature signature = java.security.Signature.getInstance(signAlg, providerName);
+        final java.security.Signature signature = java.security.Signature.getInstance(signAlg, providerName);
         byte[] sign;
 
         // signer infos
@@ -192,7 +199,7 @@ public class CMSHelper {
      * @throws Exception e
      */
     private static byte[] signCMS(byte[] buffer, PrivateKey[] keys, Certificate[] certs, byte[] data) throws Asn1Exception, NoSuchAlgorithmException, IOException, SignatureException, NoSuchProviderException, InvalidKeyException, CertificateEncodingException {
-        return signCMSEx(buffer, keys, certs, data, JCP.GOST_DIGEST_OID, JCP.GOST_EL_KEY_OID, Signature.getInstance(JCP.GOST_EL_SIGN_NAME, JCP.PROVIDER_NAME));
+        return signCMSEx(buffer, keys, certs, data, JCP.GOST_DIGEST_OID, JCP.GOST_EL_KEY_OID, JCP.GOST_EL_SIGN_NAME, JCP.PROVIDER_NAME);
     }
 
     /**
@@ -210,7 +217,7 @@ public class CMSHelper {
      * @throws Exception e
      * @since 2.0
      */
-    private static byte[] signCMSEx(byte[] buffer, PrivateKey[] keys, Certificate[] certs, byte[] data, String digestOidValue, String signOidValue, Signature signature) throws Asn1Exception, IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, CertificateEncodingException {
+    private static byte[] signCMSEx(byte[] buffer, PrivateKey[] keys, Certificate[] certs, byte[] data, String digestOidValue, String signOidValue, String signAlg, String providerName) throws Asn1Exception, IOException, NoSuchProviderException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, CertificateEncodingException {
         int i;
         final Asn1BerDecodeBuffer asnBuf = new Asn1BerDecodeBuffer(buffer);
         final ContentInfo all = new ContentInfo();
@@ -280,7 +287,7 @@ public class CMSHelper {
         } // for
 
         // Signature.getInstance
-        //final java.security.Signature signature = java.security.Signature.getInstance(signAlg, providerName);
+        final java.security.Signature signature = java.security.Signature.getInstance(signAlg, providerName);
         byte[] sign;
 
         // signer infos
@@ -326,84 +333,31 @@ public class CMSHelper {
         return asn1Buf.getMsgCopy();
     }
 
-    public static byte[] createPKCS7(byte[] data, PrivateKey privateKey,
-                                     X509Certificate certificate) throws Exception {
-
-        // Получаем бинарную подпись длиной 64 байта.
-
-        final Signature signature = Signature.getInstance(JCP.GOST_DHEL_SIGN_NAME);
-        signature.initSign(privateKey);
+    public static byte[] sign(byte[] data, PrivateKey key, X509Certificate cert) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, IOException {
+        java.security.Signature signature = java.security.Signature.getInstance("Sha1WithRSA");
+        signature.initSign(key);
         signature.update(data);
+        byte[] signedData = signature.sign();
 
-        final byte[] sign = signature.sign();
+        X500Name xName = X500Name.asX500Name(cert.getSubjectX500Principal());
+        BigInteger serial = cert.getSerialNumber();
+        AlgorithmId digestAlgorithmId = new AlgorithmId(AlgorithmId.SHA_oid);
+        AlgorithmId signAlgorithmId = new AlgorithmId(AlgorithmId.RSAEncryption_oid);
 
-        // Формируем контекст подписи формата PKCS7.
+        sun.security.pkcs.SignerInfo signerInfo = new sun.security.pkcs.SignerInfo(xName, serial, digestAlgorithmId, signAlgorithmId, signedData);
+        sun.security.pkcs.ContentInfo contentInfo = new sun.security.pkcs.ContentInfo(sun.security.pkcs.ContentInfo.DIGESTED_DATA_OID, new DerValue(DerValue.tag_OctetString, data));
+        PKCS7 pkcs7 = new PKCS7(new AlgorithmId[]{digestAlgorithmId}, contentInfo, new X509Certificate[]{cert}, new sun.security.pkcs.SignerInfo[]{signerInfo});
+        ByteArrayOutputStream baos = new DerOutputStream();
+        pkcs7.encodeSignedData(baos);
+        byte[] encodedPKCS7 = baos.toByteArray();
+        return encodedPKCS7;
+    }
 
-        final ContentInfo all = new ContentInfo();
-        all.contentType = new Asn1ObjectIdentifier(
-                new OID(STR_CMS_OID_SIGNED).value);
+    public static String signPEM(byte[] data, PrivateKey key, X509Certificate cert) throws IOException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        byte[] encodedPKCS7 = sign(data, key, cert);
 
-        final SignedData cms = new SignedData();
-        all.content = cms;
-        cms.version = new CMSVersion(1);
+        BASE64Encoder encoder = new BASE64Encoder();
 
-        // Идентификатор алгоритма хеширования.
-
-        cms.digestAlgorithms = new DigestAlgorithmIdentifiers(1);
-        final DigestAlgorithmIdentifier a = new DigestAlgorithmIdentifier(
-                new OID(JCP.GOST_DIGEST_OID).value);
-        a.parameters = new Asn1Null();
-        cms.digestAlgorithms.elements[0] = a;
-
-        // Т.к. подпись отсоединенная, то содержимое отсутствует.
-
-        cms.encapContentInfo = new EncapsulatedContentInfo(
-                new Asn1ObjectIdentifier(new OID(STR_CMS_OID_DATA).value), null);
-
-        // Добавляем сертификат подписи.
-
-        cms.certificates = new CertificateSet(1);
-        final ru.CryptoPro.JCP.ASN.PKIX1Explicit88.Certificate asnCertificate =
-                new ru.CryptoPro.JCP.ASN.PKIX1Explicit88.Certificate();
-
-        final Asn1BerDecodeBuffer decodeBuffer =
-                new Asn1BerDecodeBuffer(certificate.getEncoded());
-        asnCertificate.decode(decodeBuffer);
-
-        cms.certificates.elements = new CertificateChoices[1];
-        cms.certificates.elements[0] = new CertificateChoices();
-        cms.certificates.elements[0].set_certificate(asnCertificate);
-
-        // Добавялем информацию о подписанте.
-
-        cms.signerInfos = new SignerInfos(1);
-        cms.signerInfos.elements[0] = new SignerInfo();
-        cms.signerInfos.elements[0].version = new CMSVersion(1);
-        cms.signerInfos.elements[0].sid = new SignerIdentifier();
-
-        final byte[] encodedName = certificate.getIssuerX500Principal().getEncoded();
-        final Asn1BerDecodeBuffer nameBuf = new Asn1BerDecodeBuffer(encodedName);
-        final Name name = new Name();
-        name.decode(nameBuf);
-
-        final CertificateSerialNumber num = new CertificateSerialNumber(
-                certificate.getSerialNumber());
-
-        cms.signerInfos.elements[0].sid.set_issuerAndSerialNumber(
-                new IssuerAndSerialNumber(name, num));
-        cms.signerInfos.elements[0].digestAlgorithm =
-                new DigestAlgorithmIdentifier(new OID(JCP.GOST_DIGEST_OID).value);
-        cms.signerInfos.elements[0].digestAlgorithm.parameters = new Asn1Null();
-        cms.signerInfos.elements[0].signatureAlgorithm =
-                new SignatureAlgorithmIdentifier(new OID(JCP.GOST_SIGN_2012_512_OID).value);
-        cms.signerInfos.elements[0].signatureAlgorithm.parameters = new Asn1Null();
-        cms.signerInfos.elements[0].signature = new SignatureValue(sign);
-
-        // Получаем закодированную подпись.
-
-        final Asn1BerEncodeBuffer asnBuf = new Asn1BerEncodeBuffer();
-        all.encode(asnBuf, true);
-
-        return asnBuf.getMsgCopy();
+        return "-----BEGIN PKCS7-----" + "\n" + new String(encoder.encode(encodedPKCS7)) + "\n" + "-----END PKCS7-----";
     }
 }

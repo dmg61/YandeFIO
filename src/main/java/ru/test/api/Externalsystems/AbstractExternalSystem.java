@@ -2,6 +2,7 @@ package ru.test.api.Externalsystems;
 
 
 import ru.test.api.Helpers.StringHelper;
+import ru.test.api.exceptions.AxiLinkException;
 
 import java.util.Map;
 
@@ -29,9 +30,13 @@ public abstract class AbstractExternalSystem {
      * @return Параметры подключения ко внешней системе
      * @throws AxiLinkException
      */
-    public Map<String, String> getConnectionParams() throws Exception {
+    public Map<String, String> getConnectionParams() throws AxiLinkException {
         if(connectionStringParams == null ) {
-            connectionStringParams = StringHelper.splitParamsStringToMap(connectionString);
+            try {
+                connectionStringParams = StringHelper.splitParamsStringToMap(connectionString);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         return connectionStringParams;
